@@ -25,12 +25,8 @@ def user_profile(user_id):
 
 @app.route("/score/<int:score>")
 def results(score):
-    if score >= 50:
-        res = "PASSED"
-    else:
-        res = "FAILED"
 
-    return render_template("result.html", results=res )
+    return render_template("result.html", results=score )
 
 @app.route("/newresults/<int:newscore>")
 def displayResults(newscore):
