@@ -18,6 +18,31 @@ def contact():
 
     return render_template("contact.html")
 
+# varaible rule 
+@app.route("/user/<int:user_id>")
+def user_profile(user_id):
+    return f"User ID: {user_id}"
+
+@app.route("/score/<int:score>")
+def results(score):
+    if score >= 50:
+        res = "PASSED"
+    else:
+        res = "FAILED"
+
+    return render_template("result.html", results=res )
+
+@app.route("/newresults/<int:newscore>")
+def displayResults(newscore):
+    if newscore >= 50:
+        res = "PASSED"
+    else:
+        res = "FAILED"
+
+    output = { "Score": newscore, "Results" : res}
+
+    return render_template("results1.html", results=output)
+
 @app.route("/submit", methods=["GET", "POST"])
 def submit():
     name = request.form.get("name")
