@@ -1,0 +1,20 @@
+# MongoDB Connection 
+MONGODB_URI=mongodb+srv://mseinstructors_db_user:q0WlKBhjOG9T7Vz5@mseinstructorcluster.aybtjpc.mongodb.net/?appName=MSEInstructorCluster
+MONGODB_USER=mseinstructors_db_user
+MONGODB_PASSWORD=q0WlKBhjOG9T7Vz5
+
+# Server Port
+PORT=5000
+
+# JWT Configuration
+JWT_SECRET=RoSzni4uGX0ycTyxQ8HdR+v5cPf624oZBBg2Sm1tfDw=
+JWT_EXPIRES_IN=7d
+
+# Admin User (used by seed script)
+ADMIN_EMAIL=mseinstructors@gmail.com
+ADMIN_PASSWORD=mse@2026-uom!ftw!
+ADMIN_NAME=Admin User
+
+
+adminUser
+FweSTTJgF5f16sKc

@@ -1,0 +1,25 @@
+Just completed a client website — Dream Fitness For Life 💪
+
+Recently, I had the opportunity to design and develop the official website for Dream Fitness For Life.
+
+🔹 Clean and professional UI
+🔹 Fully responsive across devices
+🔹 Performance-focused layout
+🔹 Built to clearly represent the brand and services
+
+🌐 Live website:
+👉 https://dreamfitness-forlife.com
+
+This project helped me strengthen my understanding of:
+
+Real client requirements
+
+UI/UX decision making
+
+Deployment and production-ready workflows
+
+Always feels good to see real work go live 🚀
+
+If you’re a business owner or startup looking for a website, feel free to connect.
+
+#WebDevelopment #FrontendDeveloper #ClientWork #Portfolio #React #SoftwareEngineer

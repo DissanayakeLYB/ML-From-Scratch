@@ -1,0 +1,1784 @@
+<script>
+  (function () {
+    const MOBILE_BREAKPOINT = 950;
+
+    /* ---------- utility: create element with attrs ---------- */
+    function el(tag, attrs = {}, children = []) {
+      const e = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs)) {
+        if (k === "style" && typeof v === "object") Object.assign(e.style, v);
+        else if (k.startsWith("on") && typeof v === "function") e[k] = v;
+        else if (k === "html") e.innerHTML = v;
+        else e.setAttribute(k, v);
+      }
+      (Array.isArray(children) ? children : [children]).forEach((ch) => {
+        if (!ch) return;
+        if (typeof ch === "string") e.appendChild(document.createTextNode(ch));
+        else e.appendChild(ch);
+      });
+      return e;
+    }
+
+    /* =============================
+     ORIGINAL PAGE CLEANUP + BODY BG
+     ============================= */
+    document.addEventListener("DOMContentLoaded", function () {
+      // Remove by ID
+      const idsToRemove = [
+        "banner",
+        "footer-top",
+        "footer",
+        "subfooter",
+        "block-scholarly-page-title",
+      ];
+      idsToRemove.forEach((id) => {
+        let elmt = document.getElementById(id);
+        if (elmt && elmt.parentNode) elmt.parentNode.removeChild(elmt);
+      });
+
+      // Remove by class: split multi-class entry into separate class checks
+      const classesToRemove = [
+        "to-top",
+        "dialog-off-canvas-main-canvas",
+        "col-md-4",
+        "fix-sidebar-second",
+        "node--content",
+      ];
+      classesToRemove.forEach((className) => {
+        Array.from(document.getElementsByClassName(className)).forEach(
+          (elmt) => {
+            if (elmt && elmt.parentNode) elmt.parentNode.removeChild(elmt);
+          }
+        );
+      });
+
+      // Expand content section
+      document.querySelectorAll("section.col-md-8").forEach((section) => {
+        section.style.width = "100%";
+        section.style.boxSizing = "border-box";
+      });
+
+      // Remove original header (not the one we create)
+      document.querySelectorAll(".node--content > header").forEach((header) => {
+        if (header && header.parentNode) header.parentNode.removeChild(header);
+      });
+
+      // Make body a flex container for sticky footer and set a dark background
+      Object.assign(document.body.style, {
+        margin: "0",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#0f0f1e" /* dark background for whole page */,
+      });
+    });
+
+    /* =============================
+     MENU DATA
+     ============================= */
+    const menuItems = {
+      People: ["Academic Staff", "Non-Academic Staff"],
+      Education: ["Undergraduate", "Postgraduate"],
+      Research: [
+        "Impact Areas",
+        "Facilities",
+        { Projects: ["Undergraduate", "Postgraduate"] },
+        { CMIPD: "https://cmipd.com" },
+      ],
+      SOMES: [
+        {
+          Events: [
+            "MESII",
+            "MSE CricFiesta",
+            "MSE Careers Day",
+            "Dawasaka Hawasak",
+          ],
+        },
+        { "Social Activities": ["Hasarella"] },
+        "About",
+      ],
+      "News & Events": ["Announcements", "Events", "Calendar"],
+      Services: ["Consultancy"],
+      "Contact Us": null,
+    };
+
+    /* =============================
+     INJECT MOBILE STYLES
+     ============================= */
+    const styleTag = document.createElement("style");
+    styleTag.setAttribute("type", "text/css");
+    styleTag.appendChild(document.createTextNode(mobileStyles));
+    document.head.appendChild(styleTag);
+
+    /* =============================
+     NAVBAR CREATION (desktop + mobile controls)
+     ============================= */
+    function createNavBar(parent) {
+      // header
+      const header = document.createElement("header");
+      Object.assign(header.style, {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "16px 24px",
+        position: "sticky",
+        top: "0",
+        background: "rgba(251,251,253,0.98)",
+        backdropFilter: "blur(6px)",
+        zIndex: "999",
+      });
+
+      // logo
+      const logoLink = document.createElement("a");
+      logoLink.href = "/materials/test";
+      const logo = document.createElement("img");
+      logo.src = "/sites/default/files/materials/images/materials-log1_0.png";
+      logo.alt = "Department of Material Science and Engineering";
+      Object.assign(logo.style, { width: "100px", cursor: "pointer" });
+      logoLink.appendChild(logo);
+
+      // desktop nav
+      const nav = document.createElement("nav");
+      nav.setAttribute("aria-label", "Primary");
+      Object.assign(nav.style, {
+        display: "flex",
+        gap: "20px",
+        fontSize: "16px",
+      });
+
+      // build desktop dropdowns helper
+      function buildDesktopDropdown(items) {
+        const dropdownContent = document.createElement("div");
+        Object.assign(dropdownContent.style, {
+          display: "none",
+          position: "absolute",
+          top: "100%",
+          left: "0",
+          background: "#1a1a2e",
+          minWidth: "160px",
+          boxShadow: "0 6px 18px rgba(0,0,0,0.4)",
+          borderRadius: "6px",
+          zIndex: "1000",
+          border: "1px solid rgba(255,255,255,0.1)",
+        });
+
+        items.forEach((item) => {
+          if (typeof item === "string") {
+            const a = document.createElement("a");
+            // default href generation for plain strings
+            a.href =
+              "/materials/test-" + item.toLowerCase().replace(/\s+/g, "-");
+            a.textContent = item;
+            Object.assign(a.style, {
+              display: "block",
+              padding: "10px 14px",
+              textDecoration: "none",
+              color: "#e8e8f0",
+              fontSize: "15px",
+            });
+            a.onmouseover = () =>
+              (a.style.background = "rgba(227,66,52,0.15) !important");
+            a.onmouseout = () =>
+              (a.style.background = "transparent !important");
+            dropdownContent.appendChild(a);
+          } else if (typeof item === "object") {
+            const [nestedTitle, nestedItems] = Object.entries(item)[0];
+
+            // Check if this is an external link (CMIPD case)
+            if (
+              typeof nestedItems === "string" &&
+              nestedItems.startsWith("http")
+            ) {
+              const a = document.createElement("a");
+              a.href = nestedItems;
+              a.textContent = nestedTitle;
+              a.target = "_blank";
+              Object.assign(a.style, {
+                display: "block",
+                padding: "10px 14px",
+                textDecoration: "none",
+                color: "#e8e8f0",
+                fontSize: "15px",
+              });
+              a.onmouseover = () =>
+                (a.style.background = "rgba(227,66,52,0.15) !important");
+              a.onmouseout = () =>
+                (a.style.background = "transparent !important");
+              dropdownContent.appendChild(a);
+              return;
+            }
+
+            const nestedWrapper = document.createElement("div");
+            Object.assign(nestedWrapper.style, { position: "relative" });
+
+            const nestedBtn = document.createElement("span");
+            nestedBtn.textContent = nestedTitle;
+            Object.assign(nestedBtn.style, {
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "12px",
+              padding: "10px 14px",
+              textDecoration: "none",
+              color: "#e8e8f0",
+              fontSize: "15px",
+              cursor: "default",
+            });
+
+            const arrow = document.createElement("span");
+            arrow.textContent = "▸";
+            arrow.style.marginLeft = "auto";
+            nestedBtn.appendChild(arrow);
+
+            // Special-case: if this nested group is "Projects", create the links
+            // with the explicit routes required by the department.
+            let nestedContent;
+            if (String(nestedTitle).toLowerCase() === "projects") {
+              nestedContent = document.createElement("div");
+              Object.assign(nestedContent.style, {
+                display: "none",
+                position: "absolute",
+                top: "0",
+                left: "100%",
+                minWidth: "180px",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.4)",
+                borderRadius: "6px",
+                background: "#1a1a2e",
+                border: "1px solid rgba(255,255,255,0.1)",
+              });
+
+              nestedItems.forEach((sub) => {
+                const a = document.createElement("a");
+                const name = String(sub).toLowerCase();
+                if (name.includes("undergrad")) {
+                  a.href = "/materials/test-projects-undergraduates";
+                } else if (
+                  name.includes("postgrad") ||
+                  name.includes("postgraduate")
+                ) {
+                  a.href = "/materials/test-projects-postgraduates";
+                } else {
+                  // fallback to the previous pattern
+                  a.href = "/materials/test-" + name.replace(/\s+/g, "-");
+                }
+                a.textContent = sub;
+                Object.assign(a.style, {
+                  display: "block",
+                  padding: "10px 14px",
+                  textDecoration: "none",
+                  color: "#e8e8f0",
+                  fontSize: "15px",
+                });
+                a.onmouseover = () =>
+                  (a.style.background = "rgba(227,66,52,0.15)");
+                a.onmouseout = () => (a.style.background = "transparent");
+                nestedContent.appendChild(a);
+              });
+            } else {
+              // non-Projects nested groups: reuse recursive builder
+              nestedContent = buildDesktopDropdown(nestedItems);
+              Object.assign(nestedContent.style, {
+                top: "0",
+                left: "100%",
+                marginLeft: "0px",
+              });
+            }
+
+            nestedWrapper.appendChild(nestedBtn);
+            nestedWrapper.appendChild(nestedContent);
+
+            nestedWrapper.onmouseover = () =>
+              (nestedContent.style.display = "block");
+            nestedWrapper.onmouseout = () =>
+              (nestedContent.style.display = "none");
+
+            dropdownContent.appendChild(nestedWrapper);
+          }
+        });
+
+        return dropdownContent;
+      }
+      // <-- RESTORED: build desktop menu from menuItems -->
+      for (const [menu, subItems] of Object.entries(menuItems)) {
+        if (!subItems) {
+          const a = document.createElement("a");
+          if (menu === "Contact Us") a.href = "/materials/test-contact-us";
+          else a.href = "#" + menu.toLowerCase().replace(/\s+/g, "-");
+          a.textContent = menu;
+          Object.assign(a.style, {
+            textDecoration: "none",
+            color: "#111",
+            fontSize: "16px",
+            fontWeight: "500",
+            padding: "6px 8px",
+            display: "inline-block",
+          });
+          nav.appendChild(a);
+          continue;
+        }
+
+        const dropdown = document.createElement("div");
+        Object.assign(dropdown.style, { position: "relative" });
+
+        const button = document.createElement("span");
+        button.textContent = menu;
+        Object.assign(button.style, {
+          textDecoration: "none",
+          color: "#111",
+          fontSize: "16px",
+          fontWeight: "500",
+          padding: "6px 8px",
+          display: "inline-block",
+          cursor: "default",
+        });
+
+        const dropdownContent = buildDesktopDropdown(subItems);
+
+        dropdown.appendChild(button);
+        dropdown.appendChild(dropdownContent);
+
+        // hover behavior for desktop
+        dropdown.onmouseover = () => (dropdownContent.style.display = "block");
+        dropdown.onmouseout = () => (dropdownContent.style.display = "none");
+
+        nav.appendChild(dropdown);
+      }
+
+      // MOBILE: hamburger button
+      const hamburger = el(
+        "button",
+        {
+          class: "dmse-hamburger",
+          "aria-label": "Open menu",
+          "aria-expanded": "false",
+          type: "button",
+          style: {
+            display: "none",
+            background: "transparent",
+            border: "1px solid rgba(0,0,0,0.06)",
+          },
+        },
+        [el("span", { class: "bar" })]
+      );
+
+      // MOBILE PANEL (hidden by default)
+      const mobilePanel = el("nav", {
+        class: "dmse-mobile-panel",
+        "aria-hidden": "true",
+      });
+
+      // mobile panel close row
+      const closeRow = el("div", { class: "dmse-mobile-close" }, [
+        el("div", {}, []),
+        el("div", {}, [
+          el(
+            "button",
+            {
+              "aria-label": "Close menu",
+              type: "button",
+              onclick: () => closeMobile(),
+            },
+            "✕"
+          ),
+        ]),
+      ]);
+
+      mobilePanel.appendChild(closeRow);
+
+      // Build mobile menu content (accordion-style)
+      const mobileMenu = el("div", { class: "dmse-mobile-menu" });
+
+      function buildMobileSection(title, items) {
+        if (!items) {
+          // simple link
+          const link = el(
+            "a",
+            {
+              href:
+                "/materials/test-" + title.toLowerCase().replace(/\s+/g, "-"),
+              class: "mobile-link",
+            },
+            title
+          );
+          return link;
+        }
+
+        const wrapper = el("div", { class: "mobile-dropdown" });
+        const parentRow = el(
+          "div",
+          { class: "mobile-parent", role: "button", tabindex: "0" },
+          [el("span", {}, title), el("span", {}, "▾")]
+        );
+
+        const content = el("div", { class: "dmse-accordion-content" });
+
+        items.forEach((item) => {
+          if (typeof item === "string") {
+            const a = el(
+              "a",
+              {
+                href:
+                  "/materials/test-" + item.toLowerCase().replace(/\s+/g, "-"),
+              },
+              item
+            );
+            content.appendChild(a);
+          } else if (typeof item === "object") {
+            const [nestedTitle, nestedItems] = Object.entries(item)[0];
+
+            // Check if this is an external link (CMIPD case)
+            if (
+              typeof nestedItems === "string" &&
+              nestedItems.startsWith("http")
+            ) {
+              const a = el(
+                "a",
+                { href: nestedItems, target: "_blank" },
+                nestedTitle
+              );
+              content.appendChild(a);
+              return;
+            }
+
+            const nestedParent = el(
+              "div",
+              { class: "mobile-parent", role: "button", tabindex: "0" },
+              [el("span", {}, nestedTitle), el("span", {}, "▾")]
+            );
+            const nestedContent = el("div", {
+              class: "dmse-accordion-content",
+            });
+
+            nestedItems.forEach((sub) => {
+              const subText = String(sub);
+              const lower = subText.toLowerCase();
+              let href;
+              // special mapping for Projects -> undergrad/postgrad routes
+              if (String(nestedTitle).toLowerCase() === "projects") {
+                if (lower.includes("undergrad"))
+                  href = "/materials/test-projects-undergraduates";
+                else if (
+                  lower.includes("postgrad") ||
+                  lower.includes("postgraduate")
+                )
+                  href = "/materials/test-projects-postgraduates";
+                else href = "/materials/test-" + lower.replace(/\s+/g, "-");
+              } else {
+                href = "/materials/test-" + lower.replace(/\s+/g, "-");
+              }
+              const a = el("a", { href: href }, subText);
+              nestedContent.appendChild(a);
+            });
+
+            // click toggles
+            nestedParent.addEventListener("click", () => {
+              nestedContent.classList.toggle("open");
+            });
+            nestedParent.addEventListener("keypress", (e) => {
+              if (e.key === "Enter") nestedParent.click();
+            });
+            content.appendChild(nestedParent);
+            content.appendChild(nestedContent);
+          }
+        });
+
+        // attach toggle for parentRow
+        parentRow.addEventListener("click", () => {
+          content.classList.toggle("open");
+        });
+        parentRow.addEventListener("keypress", (e) => {
+          if (e.key === "Enter") parentRow.click();
+        });
+
+        wrapper.appendChild(parentRow);
+        wrapper.appendChild(content);
+        return wrapper;
+      }
+
+      // Build mobile menu: SKIP adding "Contact Us" here to avoid duplicate (bottom CTA kept)
+      for (const [menu, subItems] of Object.entries(menuItems)) {
+        if (menu === "Contact Us") continue; // <-- prevents duplicate contact inside accordion
+        const node = buildMobileSection(menu, subItems);
+        mobileMenu.appendChild(node);
+      }
+
+      // append a small contact link at bottom (kept)
+      const contactCTA = el(
+        "div",
+        {
+          style: {
+            marginTop: "12px",
+            paddingTop: "12px",
+            borderTop: "1px solid rgba(0,0,0,0.04)",
+          },
+        },
+        [
+          el(
+            "a",
+            {
+              href: "/materials/test-contact-us",
+              style: {
+                display: "inline-block",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                background: "rgba(19,17,57,0.04)",
+                fontWeight: "700",
+                textDecoration: "none",
+                color: "#131139",
+              },
+            },
+            "Contact us"
+          ),
+        ]
+      );
+      mobilePanel.appendChild(mobileMenu);
+      mobilePanel.appendChild(contactCTA);
+
+      // add all to header
+      header.appendChild(logoLink);
+      header.appendChild(nav);
+      header.appendChild(hamburger);
+
+      // append header and mobile panel to parent (body)
+      parent.insertBefore(header, parent.firstChild);
+      document.body.appendChild(mobilePanel);
+
+      // mobile open/close handlers
+      function openMobile() {
+        mobilePanel.classList.add("open");
+        mobilePanel.setAttribute("aria-hidden", "false");
+        hamburger.setAttribute("aria-expanded", "true");
+        document.body.style.overflow = "hidden";
+      }
+      function closeMobile() {
+        mobilePanel.classList.remove("open");
+        mobilePanel.setAttribute("aria-hidden", "true");
+        hamburger.setAttribute("aria-expanded", "false");
+        document.body.style.overflow = "";
+      }
+
+      // toggle by hamburger
+      hamburger.addEventListener("click", () => {
+        if (mobilePanel.classList.contains("open")) closeMobile();
+        else openMobile();
+      });
+
+      // close when clicking outside panel
+      document.addEventListener("click", (e) => {
+        if (!mobilePanel.classList.contains("open")) return;
+        const isInside =
+          mobilePanel.contains(e.target) || header.contains(e.target);
+        if (!isInside) closeMobile();
+      });
+
+      // ESC to close
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && mobilePanel.classList.contains("open"))
+          closeMobile();
+      });
+
+      // responsive toggling on resize
+      function applyResponsiveVisibility() {
+        const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+        if (isMobile) {
+          nav.style.display = "none";
+          hamburger.style.display = "flex";
+        } else {
+          nav.style.display = "flex";
+          hamburger.style.display = "none";
+          // ensure mobile panel closed
+          closeMobile();
+        }
+      }
+      applyResponsiveVisibility();
+      window.addEventListener("resize", applyResponsiveVisibility);
+    }
+
+    /* =============================
+     Minimal footer
+     ============================= */
+    function createFooter(parent) {
+      const existingFooter = document.querySelector(
+        'footer[data-dmse-minimal="true"]'
+      );
+      if (existingFooter) return; // avoid double-append
+
+      const footer = document.createElement("footer");
+      footer.setAttribute("data-dmse-minimal", "true");
+      Object.assign(footer.style, {
+        background: "#f7f7fb",
+        padding: "16px 20px",
+        textAlign: "center",
+        fontSize: "16px",
+        color: "#3b3b4a",
+        borderTop: "1px solid rgba(0,0,0,0.04)",
+        marginTop: "auto",
+      });
+
+      const year = new Date().getFullYear();
+      footer.innerHTML = `
+      <div style="max-width:1100px; margin:0 auto;">
+        <small style="color:#3b3b4a;">
+          &copy; ${year} DMSE - University of Moratuwa
+        </small>
+      </div>
+    `;
+      parent.appendChild(footer);
+    }
+
+    /* =============================
+     ROUTING FIX: rewrite anchors inside #main-content
+     ============================= */
+    function rewriteMainAnchors() {
+      const main = document.getElementById("main-content");
+      if (!main) return;
+      const anchors = Array.from(main.querySelectorAll("a"));
+      anchors.forEach((a) => {
+        try {
+          const href = (a.getAttribute("href") || "").trim();
+          if (href.startsWith("#")) {
+            const slug = href
+              .slice(1)
+              .toLowerCase()
+              .replace(/\s+/g, "-")
+              .replace(/[^\w\-]/g, "");
+            if (slug.length > 0)
+              a.setAttribute("href", "/materials/test-" + slug);
+          } else if (!href || href === "#" || href === "javascript:void(0)") {
+            const txt = (a.textContent || "").trim();
+            if (txt.length > 0 && txt.length < 50) {
+              const slug = txt
+                .toLowerCase()
+                .replace(/\s+/g, "-")
+                .replace(/[^\w\-]/g, "");
+              if (slug.length > 0)
+                a.setAttribute("href", "/materials/test-" + slug);
+            }
+          }
+        } catch (e) {
+          console.warn("link rewrite error", e);
+        }
+      });
+    }
+
+    /* Initialize once DOM is ready */
+    document.addEventListener("DOMContentLoaded", function () {
+      createNavBar(document.body);
+      createFooter(document.body);
+      rewriteMainAnchors();
+    });
+  })();
+</script>
+
+<style type="text/css">
+  :root {
+    --brand: #e8e8f0;
+    --brand-dark: #131139;
+    --accent: #e34234;
+    --accent-light: rgba(227, 66, 52, 0.15);
+    --muted: #b0b0c0;
+    --muted-light: rgba(176, 176, 192, 0.15);
+    --bg: #0f0f1e;
+    --bg-light: #1a1a2e;
+    --card-bg: #16162a;
+    --card-bg-lighter: #1e1e38;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --container: min(1200px, 95vw);
+    --flow-gap: 16px;
+    --base-fs: 16px;
+    --h1: clamp(2.5rem, 6vw, 3.5rem);
+    --h2: clamp(1.75rem, 4.5vw, 2.5rem);
+    --h3: clamp(1.35rem, 3.5vw, 1.75rem);
+    --h4: clamp(1.15rem, 2.5vw, 1.35rem);
+    --lead: clamp(1rem, 2.2vw, 1.25rem);
+    --body: clamp(0.95rem, 2vw, 1.05rem);
+    --small: clamp(0.85rem, 1.5vw, 0.9rem);
+    --shadow-1: 0 8px 24px rgba(0, 0, 0, 0.3);
+    --shadow-2: 0 15px 35px rgba(0, 0, 0, 0.4);
+    --shadow-3: 0 20px 45px rgba(0, 0, 0, 0.5);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --gradient-1: linear-gradient(135deg, var(--accent) 0%, #ff6b5a 100%);
+    --gradient-2: linear-gradient(135deg, #2a2660 0%, #1a1a3e 100%);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    font-size: var(--base-fs);
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+
+  body {
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif !important;
+    color: var(--brand);
+    background: linear-gradient(
+      180deg,
+      #0a0a1f 0%,
+      #1a1a3e 15%,
+      #2a2a5e 30%,
+      #1a1a3e 50%,
+      #16162a 70%,
+      #0f0f1e 100%
+    );
+    background-attachment: fixed;
+    background-size: 100% 100%;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ===========================
+       TYPOGRAPHY
+       =========================== */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 1.25rem;
+    color: var(--brand);
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    font-size: var(--h1);
+    background: var(--gradient-2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  h2 {
+    font-size: var(--h2);
+    margin-top: 3rem;
+    position: relative;
+    padding-bottom: 1rem;
+  }
+  h2::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 80px;
+    height: 4px;
+    background: var(--gradient-1);
+    border-radius: 2px;
+  }
+  h3 {
+    font-size: var(--h3);
+  }
+  h4 {
+    font-size: var(--h4);
+  }
+
+  p,
+  li {
+    font-size: var(--body);
+    color: var(--muted);
+    margin-bottom: 1rem;
+    line-height: 1.8;
+  }
+
+  .lead {
+    font-size: var(--lead);
+    font-weight: 500;
+    color: var(--brand);
+    line-height: 1.7;
+    margin-bottom: 2rem;
+  }
+
+  small,
+  .small {
+    font-size: var(--small);
+  }
+
+  a {
+    color: var(--accent) !important;
+    text-decoration: none;
+    transition: var(--transition);
+    position: relative;
+  }
+
+  a:hover,
+  a:focus {
+    color: var(--brand) !important;
+  }
+
+  .card a,
+  .news-item a {
+    text-decoration: none;
+  }
+
+  .card a:hover,
+  .news-item a:hover {
+    text-decoration: none;
+  }
+
+  section a:not(.btn):not(.card a):not(.news-item a) {
+    font-weight: 600;
+    border-bottom: 2px solid var(--accent-light);
+  }
+
+  section a:not(.btn):not(.card a):not(.news-item a):hover {
+    border-bottom-color: var(--accent);
+  }
+
+  /* ===========================
+       LAYOUT & CONTAINERS
+       =========================== */
+  .container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .container-full {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .section {
+    padding: 4rem 2rem;
+    width: 100%;
+    background: none !important;
+  }
+
+  .section-alt {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-1);
+    padding: 2.5rem;
+    margin: 2rem 2rem;
+    border-left: 4px solid var(--accent);
+    transition: var(--transition);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .section-alt:hover {
+    box-shadow: var(--shadow-2);
+    transform: translateX(5px);
+    border-left-color: var(--accent);
+    background: var(--card-bg-lighter);
+  }
+
+  /* ===========================
+       HEADER & NAVIGATION
+       =========================== */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 2rem;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  }
+
+  .logo {
+    width: 120px;
+    height: auto;
+    transition: var(--transition);
+  }
+
+  .logo:hover {
+    transform: scale(1.05);
+  }
+
+  /* ===========================
+       HERO SECTION
+       =========================== */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    background: transparent;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(
+        circle at 20% 30%,
+        rgba(227, 66, 52, 0.15) 0%,
+        transparent 40%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(100, 100, 255, 0.1) 0%,
+        transparent 40%
+      );
+    z-index: 0;
+  }
+
+  .hero-content {
+    max-width: 1000px;
+    animation: fadeInUp 0.8s ease-out;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero h1 {
+    color: white;
+    background: #ffffff;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    margin-bottom: 1.5rem;
+    font-size: clamp(2.8rem, 7vw, 4.5rem);
+    line-height: 1.1;
+  }
+
+  .hero .lead {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+    margin-bottom: 3rem;
+    font-weight: 400;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  .hero-image {
+    display: none;
+  }
+
+  .kicker {
+    display: inline-block;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+    background: transparent;
+    letter-spacing: 0.15rem;
+    font-weight: 600;
+    font-size: clamp(0.75rem, 1.8vw, 0.95rem);
+    padding: 0;
+    border-radius: 0;
+    margin-bottom: 1.5rem;
+    box-shadow: none;
+    border-bottom: 2px solid rgba(227, 66, 52, 0.5);
+    padding-bottom: 0.5rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 2.5rem;
+    border-radius: 50px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: var(--transition);
+    min-height: 48px;
+    font-size: var(--body);
+    border: none;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: left 0.4s ease;
+  }
+
+  .btn:hover::before {
+    left: 100%;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent) 0%, #ff5544 100%);
+    color: white;
+    box-shadow: 0 10px 40px rgba(227, 66, 52, 0.3);
+    border: 2px solid transparent;
+  }
+
+  .btn-primary:hover,
+  .btn-primary:focus {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 50px rgba(227, 66, 52, 0.4);
+    text-decoration: none;
+    color: white;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* ===========================
+       GRID LAYOUTS
+       =========================== */
+  .grid {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  /* ===========================
+       CARD COMPONENTS
+       =========================== */
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-1);
+    transition: var(--transition);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+  }
+
+  .card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-1);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-3);
+  }
+
+  .card:hover::after {
+    transform: scaleX(1);
+  }
+
+  .card-img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    transition: var(--transition);
+  }
+
+  .card:hover .card-img {
+    transform: scale(1.08);
+  }
+
+  .card-content {
+    padding: 2rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card h3 {
+    margin-bottom: 1rem;
+    color: white !important;
+    transition: var(--transition);
+  }
+
+  .card:hover h3 {
+    color: var(--accent) !important;
+  }
+
+  .card p {
+    margin-bottom: 1rem;
+    flex-grow: 1;
+    line-height: 1.7;
+  }
+
+  /* ===========================
+       NEWS COMPONENTS
+       =========================== */
+  .news-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .news-item {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.75rem;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-1);
+    transition: var(--transition);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .news-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--gradient-1);
+    transform: scaleY(0);
+    transition: transform 0.3s ease;
+  }
+
+  .news-item:hover {
+    box-shadow: var(--shadow-2);
+    transform: translateX(8px);
+  }
+
+  .news-item:hover::before {
+    transform: scaleY(1);
+  }
+
+  .news-content {
+    flex-grow: 1;
+  }
+
+  .news-content h4 {
+    margin-bottom: 0.75rem;
+    transition: var(--transition);
+  }
+
+  .news-item:hover .news-content h4 {
+    color: var(--accent) !important;
+  }
+
+  /* ===========================
+       LIST STYLES
+       =========================== */
+  ul {
+    padding-left: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  li {
+    margin-bottom: 0.75rem;
+    position: relative;
+    padding-left: 0.5rem;
+  }
+
+  .section-alt ul li::marker {
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  /* ===========================
+       BADGE & TAG STYLES
+       =========================== */
+  .badge {
+    display: inline-block;
+    padding: 0.35rem 0.85rem;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 50px;
+    font-size: var(--small);
+    font-weight: 700;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ===========================
+       IMAGE-TEXT SECTIONS
+       =========================== */
+  .image-text-section {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    align-items: center;
+    margin: 4rem 0;
+  }
+
+  .image-text-section.reverse {
+    flex-direction: column-reverse;
+  }
+
+  .section-image {
+    flex: 1;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .section-image img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-2);
+    transition: var(--transition);
+  }
+
+  .section-image img:hover {
+    transform: scale(1.02);
+    box-shadow: var(--shadow-3);
+  }
+
+  .section-text {
+    flex: 1;
+    max-width: 600px;
+  }
+
+  .section-text h2 {
+    margin-top: 0;
+  }
+
+  /* ===========================
+       FOOTER
+       =========================== */
+  footer[data-dmse-minimal="true"] {
+    background: linear-gradient(135deg, #131139 0%, #1a1850 100%);
+    padding: 3rem 1rem 2rem;
+    text-align: center;
+    font-size: var(--small);
+    color: rgba(255, 255, 255, 0.8);
+    border-top: 3px solid var(--accent);
+    margin-top: auto;
+    position: relative;
+    overflow: hidden;
+  }
+
+  footer[data-dmse-minimal="true"]::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+      circle,
+      rgba(227, 66, 52, 0.1) 0%,
+      transparent 70%
+    );
+    animation: rotate 20s linear infinite;
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  footer[data-dmse-minimal="true"] p {
+    position: relative;
+    z-index: 1;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  /* ===========================
+       UTILITY CLASSES
+       =========================== */
+  .text-center {
+    text-align: center;
+  }
+  .mt-1 {
+    margin-top: 1rem;
+  }
+  .mt-2 {
+    margin-top: 2rem;
+  }
+  .mb-1 {
+    margin-bottom: 1rem;
+  }
+  .mb-2 {
+    margin-bottom: 2rem;
+  }
+
+  /* ===========================
+       ACCESSIBILITY
+       =========================== */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  a:focus,
+  button:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ===========================
+       MEDIA QUERIES
+       =========================== */
+  /* Tablet */
+  @media (min-width: 768px) {
+    .container {
+      padding: 0;
+    }
+
+    .section {
+      padding: 5rem 3rem;
+    }
+
+    .hero {
+      flex-direction: row;
+      text-align: center;
+      gap: 4rem;
+      padding: 3rem;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .image-text-section {
+      flex-direction: row;
+      gap: 4rem;
+    }
+
+    .image-text-section.reverse {
+      flex-direction: row-reverse;
+    }
+
+    h2::after {
+      left: 0;
+    }
+
+    .hero-content {
+      flex: 1;
+    }
+
+    .hero-image {
+      flex: 1;
+      max-width: 450px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+    }
+
+    .news-item {
+      padding: 2rem;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  /* Desktop */
+  @media (min-width: 1024px) {
+    .container {
+      padding: 0;
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2.5rem;
+    }
+
+    .news-item {
+      padding: 2rem;
+    }
+
+    .card-img {
+      height: 240px;
+    }
+  }
+
+  /* Large Desktop */
+  @media (min-width: 1200px) {
+    .hero-image {
+      max-width: 500px;
+    }
+
+    .grid-3 {
+      gap: 3rem;
+    }
+  }
+</style>
+<!-- Header will be injected by the script -->
+<main>
+  <!-- HERO SECTION -->
+  <section class="hero-section" id="home">
+    <div class="container-full">
+      <div class="hero">
+        <div class="hero-content">
+          <span class="kicker">University of Moratuwa</span>
+          <h1>Department of Materials Science and Engineering</h1>
+          <p class="lead">
+            Advancing innovation through cutting-edge materials research,
+            education, and industry collaboration
+          </p>
+          <a class="btn btn-primary" href="/materials/pograduate"
+            >Explore Programs</a
+          >
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- ABOUT SECTION -->
+
+  <section class="section" id="about">
+    <div class="container">
+      <h2>About the Department</h2>
+
+      <p class="lead">
+        The Department of Materials Science and Engineering provides
+        undergraduate and postgraduate education, research, advanced facilities
+        for materials characterisation, and active collaborations with industry
+        and global partners.
+      </p>
+    </div>
+  </section>
+
+  <!-- IMAGE-TEXT SECTIONS -->
+  <section class="section">
+    <div class="container">
+      <div class="image-text-section">
+        <div class="section-image">
+          <img
+            src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800"
+            alt="Research Excellence"
+            loading="lazy"
+          />
+        </div>
+        <div class="section-text">
+          <h2>Research Excellence</h2>
+          <p class="lead">
+            Pioneering innovations in materials science and engineering
+          </p>
+          <p>
+            Our department conducts world-class research in advanced materials,
+            nanotechnology, biomaterials, and sustainable energy solutions. With
+            state-of-the-art facilities and expert faculty, we push the
+            boundaries of what's possible in materials science.
+          </p>
+          <p>
+            Our research impacts industries ranging from aerospace to
+            healthcare, contributing to technological advancement and societal
+            development.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="image-text-section reverse">
+        <div class="section-image">
+          <img
+            src="https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800"
+            alt="Industry Partnerships"
+            loading="lazy"
+          />
+        </div>
+        <div class="section-text">
+          <h2>Industry Partnerships</h2>
+          <p class="lead">
+            Bridging academia and industry for real-world impact
+          </p>
+          <p>
+            We collaborate with leading companies and organizations to solve
+            complex materials challenges. Our partnerships provide students with
+            practical experience and ensure our research addresses real-world
+            needs.
+          </p>
+          <p>
+            From materials testing to consultancy services, we support
+            industries in developing innovative solutions.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="image-text-section">
+        <div class="section-image">
+          <img
+            src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800"
+            alt="Student Experience"
+            loading="lazy"
+          />
+        </div>
+        <div class="section-text">
+          <h2>Exceptional Student Experience</h2>
+          <p class="lead">
+            Nurturing the next generation of materials scientists
+          </p>
+          <p>
+            Our students benefit from hands-on learning experiences,
+            cutting-edge laboratory facilities, and mentorship from
+            world-renowned faculty. We offer comprehensive undergraduate and
+            postgraduate programs designed to equip students with both
+            theoretical knowledge and practical skills.
+          </p>
+          <p>
+            Join a vibrant community of learners and innovators shaping the
+            future of materials science.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- VISION & MISSION SECTIONS -->
+
+  <div class="container">
+    <section class="section-alt" id="vision">
+      <h3>Vision</h3>
+
+      <p>
+        Becoming a center of excellence in higher learning, research, industrial
+        consultancy and other relevant activities in Materials Science and
+        Engineering.
+      </p>
+    </section>
+
+    <section class="section-alt" id="mission">
+      <h3>Mission</h3>
+
+      <p>
+        To be a center of excellence in Materials Science &amp; Engineering by
+        providing opportunity:
+      </p>
+
+      <ul>
+        <li>
+          for undergraduates and postgraduates to acquire specialized knowledge
+          on the development and processing of engineering materials
+        </li>
+        <li>
+          to conduct high-quality research to cater for national development
+        </li>
+        <li>
+          to provide consultancy services to the public and private sector
+        </li>
+      </ul>
+    </section>
+  </div>
+  <!-- EXPLORE SECTION -->
+
+  <section class="section" id="explore">
+    <div class="container">
+      <h2>Explore Our Department</h2>
+
+      <div class="grid grid-3">
+        <div class="card">
+          <img
+            alt="Undergraduate Programs"
+            class="card-img"
+            loading="lazy"
+            src="https://uom.lk/sites/default/files/materials/images/Class.png"
+          />
+          <div class="card-content">
+            <h3>
+              <a href="/materials/test-undergraduate">Undergraduate Programs</a>
+            </h3>
+
+            <p>
+              Bachelor of the Science of Engineering Honours in Materials
+              Science and Engineering.
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <img
+            alt="Postgraduate Programs"
+            class="card-img"
+            loading="lazy"
+            src="https://uom.lk/sites/default/files/materials/images/Postgraduate.png"
+          />
+          <div class="card-content">
+            <h3>
+              <a href="/materials/test-postgraduate">Postgraduate Programs</a>
+            </h3>
+
+            <p>PhD, MPhil, MSc by research and coursework.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <img
+            alt="Research &amp; Impact"
+            class="card-img"
+            loading="lazy"
+            src="https://uom.lk/sites/default/files/materials/images/Research%20and%20Impact.png"
+          />
+          <div class="card-content">
+            <h3>
+              <a href="/materials/test-impact-areas"
+                >Research &amp; Innovations</a
+              >
+            </h3>
+
+            <p>
+              Fields covering Metallurgy, Ceramics, Polymers, Composites,
+              Biomaterials, Nanomaterials, Energy materials, and more.
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <img
+            alt="Facilities &amp; Equipment"
+            class="card-img"
+            loading="lazy"
+            src="https://uom.lk/sites/default/files/materials/images/SEM.png"
+          />
+          <div class="card-content">
+            <h3>
+              <a href="/materials/test-facilities"
+                >Facilities &amp; Equipment</a
+              >
+            </h3>
+
+            <p>
+              World-class laboratories and testing facilities supporting
+              education, research and industry.
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <img
+            alt="Academic Staff"
+            class="card-img"
+            loading="lazy"
+            src="https://uom.lk/sites/default/files/materials/images/7.jpeg"
+          />
+          <div class="card-content">
+            <h3><a href="/materials/test-academic-staff">Academic Staff</a></h3>
+
+            <p>Highly qualified academic staff with wide range of expertise.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <img
+            alt="Consultancy &amp; Services"
+            class="card-img"
+            loading="lazy"
+            src="https://uom.lk/sites/default/files/materials/images/Consultancy_1.png"
+          />
+          <div class="card-content">
+            <h3>
+              <a href="/materials/test-consultancy"
+                >Consultancy &amp; Services</a
+              >
+            </h3>
+
+            <p>Expert advice, consultation services, and materials testing.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- NEWS & EVENTS SECTION -->
+
+  <section class="section" id="news">
+    <div class="container">
+      <h2>News &amp; Events</h2>
+
+      <div class="news-list">
+        <div class="news-item">
+          <div class="news-content">
+            <h4>
+              <a
+                href="https://www.youtube.com/watch?si=DnQOorRMDdnA1wSJ&amp;fbclid=IwY2xjawOMW1FleHRuA2FlbQIxMQBzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEepml50AT-vcffUFWiSR56XAI9zgSlNfr43N7XeHdNv5pPeAthCOG9u7TYOpY_aem_KfBeC7MV4N6yk64Nq-_jpw&amp;v=ohNHT4XAoaQ&amp;feature=youtu.be"
+                >Ada Derana Mornings - TV Segment</a
+              >
+            </h4>
+
+            <p>
+              Highlighted the department's degree program, the upcoming Golden
+              Jubilee Celebration, and the National Forum.
+            </p>
+          </div>
+        </div>
+
+        <div class="news-item">
+          <div class="news-content">
+            <h4>
+              <a href="https://www.facebook.com/share/p/17PCiyEB6N/"
+                >National Forum - MSE</a
+              >
+            </h4>
+
+            <p>
+              A national gathering of experts, researchers, and industry leaders
+              exploring how materials science.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-2">
+        <a href="/materials/test-announcements">See all announcements</a>
+      </div>
+    </div>
+  </section>
+</main>

@@ -1,0 +1,9 @@
+https://stack.convex.dev/authorization
+https://www.nextlabs.com/blogs/what-is-row-level-security/
+https://www.geeksforgeeks.org/system-design/multi-tenancy-architecture-system-design/
+https://www.geeksforgeeks.org/system-design/getting-started-with-system-design/
+
+
+https://systemdesignschool.io/primer#introduction
+
+https://medium.com/@firatmelih/what-is-http-9b495f22bffa - medium

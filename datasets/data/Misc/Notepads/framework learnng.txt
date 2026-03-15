@@ -1,0 +1,33 @@
+Identify Why and what core problem is solved
+
+
+Find the core abstractions (3 to 5 pillar concepts)
+Frontend - Components, States, Props, Lifecycle
+Backend - Routes, Controllers, Services, Models
+
+
+Trace the execution flow
+eg - 
+backend - incoming request, routing, middleware, controller, service, database, response
+frontend - state changes, render triggered, UI updates, Effects run, browser paints
+
+
+Focus on the 20% used mostly which are useful for the 80% outputs
+
+
+Build something small and real.
+eg - 
+	simple form that saves data
+	a button that calls an API and displays the result
+	a background job that runs on a schedule
+
+
+Pay attention to where the framework stops helping you
+
+
+Learn where abstractions break
+
+
+
+
+

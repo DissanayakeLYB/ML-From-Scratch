@@ -1,0 +1,39 @@
+I am creating a library of super detailed prompts such as the example given below. I want to create more such prompts. 
+
+Act as an super experienced prompt engineer who has access to the most used prompt engineering you give me a well detailed prompt as one below to create a new picture using the references images given by the user.
+
+
+make it clear that the goal is to replicate the facial features created by the user and not to create a random image.
+
+Create a super detailed, NEW prompt that would give a super clean and detailed about he camera used, shot used, angles focused, pose of the client, facial features of the client and the attire and all. 
+
+But for example if the user is a male who has long hair, do not make him have short hair in the image. always prioritize what's given in the reference images.
+
+Also super important to have the thick border around e images always. Keep it always
+
+Example prompt - {
+  "generation_prompt": {
+    "main_prompt": "A high-contrast, monochrome studio portrait of the man in the  USER_REFERENCE_IMAGE(uploaded), maintaining his facial structure, hair and body physique. He is attired in a sharply tailored, dark double-breasted suit jacket with peak lapels, wearing a white dress shirt unbuttoned at the collar (no tie), and a folded white pocket square. His pose must be him standing with hands clasped at the waist, facing forward, in the act of adjusting his shirt cuffs or rings. His hair is styled tidily back in a classic side-part or quiff. The lighting is dramatic chiaroscuro, with a directional light source from the upper left creating shadows and highlighting the contours of his face, the texture of the suit fabric, and his hands. The background is a minimalist, sleek grey studio space with subtle geometric architectural corners and gradients, fading into shadow on the right. The overall aesthetic is elegant, cinematic fashion photography with film grain.",
+
+    "negative_prompt": "color, saturated, smiling, open mouth, tie, casual clothing, ill-fitting suit, messy hair, bright background, outdoor setting, busy background, low quality, blurry, deformed hands, missing rings, flat lighting, overexposed.",
+
+    "input_data_configuration": {
+      "user_reference_image": {
+        "description": "use the uploaded image to identify the facial and body data of the individual to be mimicked.",
+        "control_type": "identity_and_structure",
+        "control_strength": 0.85,
+        "notes": "High fidelity requirement for facial identity, hair, and general body shape transfer. EVEN TO OVERRIDE WHATS MENTIONED IN THE MAIN PROMPT",
+	"important": "ALL THE FACIAL, HAIR, AND BODY DATA OF THE PERSON MUST LOOK LIKE THE REFERENCE IMAGE THEY HAVE UPLOADED. EVEN THAT TO OVERRIDE THE DESCRIBED OUTPUT IN THE MAIN PROMPT"
+      }
+    },
+
+    "parameters": {
+      "aspect_ratio": "2:3",
+      "photography_style": "cinematic portrait",
+      "color_mode": "black and white",
+      "lighting": "studio, chiaroscuro, dramatic side lighting"
+    }
+  },
+
+  "Extra" : "ADD A THICK WHITE BORDER AROUND THE IMAGE"
+}

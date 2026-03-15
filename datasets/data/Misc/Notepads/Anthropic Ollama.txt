@@ -1,0 +1,16 @@
+Anthropic just became budget-friendly. Just days ago, you can run the Claude Code tool for $0 cost using Ollama and open-source models. Here is how to do it:
+Until now, using Anthropic's agentic coding tool meant paying for every token via their API. That changed this week.
+Get it running with this simple 5-step guide:
+𝟭] 𝗜𝗻𝘀𝘁𝗮𝗹𝗹 𝗢𝗹𝗹𝗮𝗺𝗮
+𝟮] 𝗣𝘂𝗹𝗹 𝗮 𝘀𝘁𝗿𝗼𝗻𝗴 𝗼𝗽𝗲𝗻-𝘀𝗼𝗿𝘂𝗰𝗲 𝗰𝗼𝗱𝗶𝗻𝗴 𝗺𝗼𝗱𝗲𝗹
+ollama pull qwen2.5-coder 3. 
+𝟯] 𝗜𝗻𝘀𝘁𝗮𝗹𝗹 𝗖𝗹𝗮𝘂𝗱𝗲 𝗖𝗼𝗱𝗲 
+npm install -g @anthropic-ai/claude-code 4.
+𝟰] 𝗖𝗼𝗻𝗻𝗲𝗰𝘁
+Point Claude Code to your local server instead of Anthropic's cloud:
+export ANTHROPIC_AUTH_TOKEN=ollama
+export ANTHROPIC_BASE_URL=http://localhost:11434
+𝟱] 𝗥𝘂𝗻 𝗜𝘁 
+claude --model qwen2.5-coder
+The barrier to entry for agentic coding just dropped to zero.
+Source: Nina Fernanda Durán
